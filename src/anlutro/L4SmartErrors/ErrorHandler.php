@@ -84,9 +84,22 @@ class ErrorHandler
 					->log($exception);
 			}
 
+			// Whitelist exception
+			$is_whitelist = false;
+			switch ($this->getExceptionBaseName($exception)) {
+				case 'FileException':
+					$is_whitelist = true;
+				break;
+
+				case 'MethodNotAllowedHttpException':
+					$is_whitelist = true;
+				break;
+
+			}
+
 			$email = $this->app['config']->get('smarterror::dev-email');
 
-			if ($email && $this->shouldSendEmail($exception)) {
+			if ($email && $this->shouldSendEmail($exception) && !$is_whitelist) {
 				$appInfoGenerator = $this->makeAppInfoGenerator();
 				$exceptionPresenter = $this->makeExceptionPresenter($exception);
 				$sessionPresenter = $this->makeSessionPresenter();
@@ -349,5 +362,16 @@ class ErrorHandler
 	{
 		return $this->app->make('anlutro\L4SmartErrors\Presenters\LogContextPresenter',
 			[$context]);
+	}
+
+	protected function getExceptionBaseName(Exception $exception)
+	{
+		$exceptionName = get_class($exception);
+
+		if (($pos = strrpos($exceptionName, '\\')) !== false) {
+			$exceptionName = substr($exceptionName, ($pos + 1));
+		}
+
+		return $exceptionName;
 	}
 }
